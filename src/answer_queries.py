@@ -5,13 +5,33 @@ from os.path import join, dirname
 from openai import AzureOpenAI
 import pandas as pd
 import chromadb
+from sentence_transformers import SentenceTransformer
 
 def search_vector_db(db_path: str, query: str):
-    # client = chromadb.EphemeralClient()
     client = chromadb.PersistentClient(path=db_path)
     collection = client.get_collection(name="reports")
-    results = collection.query(query_texts=[query], n_results=10)
-    return [doc for doc in results["documents"][0]]
+    # results = collection.query(query_texts=[query], n_results=10)
+    # return [doc for doc in results["documents"][0]]
+
+    # **埋め込みモデルをロード**
+    embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
+
+     # クエリをベクトルに変換
+    query_vector = embedding_model.encode(query).tolist()
+
+    # ベクトル検索を実行
+    results = collection.query(query_embeddings=[query_vector], n_results=10)
+
+    # 結果が空の場合の処理
+    if not results["documents"]:
+        return []
+
+    # # 関連するドキュメントとメタデータを取得
+    # return [
+    #     {"document": doc, "metadata": meta}
+    #     for doc, meta in zip(results["documents"][0], results["metadatas"][0])
+    # ]
+    return [doc for doc in results["documents"][0]]   
 
 def answer_questions(query_file: str, db_path: str, output_file: str):
 
@@ -32,15 +52,6 @@ def answer_questions(query_file: str, db_path: str, output_file: str):
         context = " ".join(relevant_docs)
 
         role = "あなたは企業に関する質問に対して、情報を必要に応じてベクトルデータベースから検索し、回答するRAGです。"
-
-        # prompt = f"""
-
-        #     次の質問に54トークン以内で簡潔に回答してください。: {row['problem']}\n
-        #     あなたがベクトルデーターベースから質問に関連して検索した情報を示します。こちらを参考に回答してください。Context: {context}\n
-        #     回答するための情報が不十分な場合には、「分かりません。」と最初に述べた後、回答するために必要な情報を続けて述べてください。
-
-        #     """
-        
         
         prompt = f"""
 
@@ -50,7 +61,6 @@ def answer_questions(query_file: str, db_path: str, output_file: str):
             # 文章ではなく、単語レベルで完結に回答すること。
             # 回答が複数ある場合には、句点(、)で区切って回答をすること。
             # 数値を答えさせる問題の場合は、数値のみを回答すること。
-            # 質問に答えられない場合は、回答できない旨と、回答するために必要な情報を示すこと。
             """
 
         response = client.chat.completions.create(

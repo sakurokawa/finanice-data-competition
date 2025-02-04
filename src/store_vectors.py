@@ -22,41 +22,30 @@ def store_segments_to_vector_db(db_path: str, segment_folder: str):
 
     print(f"`----------------{segment_folder}の処理を開始します----------------")
 
-    for segment_file in Path(db_path/segment_folder).glob("*.json"):
-        with open(segment_file, "r") as f:
+    for segment_file in Path(segment_folder).glob("*.json"):
+        with open(segment_file, "r", encoding="utf-8") as f:
             try:
                 data = json.load(f)
             except json.JSONDecodeError:
                 print(f"Error: {segment_file} の JSON が不正です。スキップします。")
                 continue
-
-        # # `data` はリスト形式であることを確認
-        # if not isinstance(data, list):
-        #     print(f"Warning: {segment_file} のデータ形式が不正です。スキップします。")
-        #     continue
         
         # `company` と`info` の存在を確認
-        if not "company" not in data or "info" not in data:
+        if not ("company" in data and "info" in data):
             print(f"Warning: {segment_file} のセグメントデータが不正です。スキップします。")
             continue
 
         # 企業名を取り出し
         company_name = data["company"]
 
-        # for segment in data:
-        #     # `company` と`topic` と `details` の存在を確認
-        #     if not isinstance(segment, dict) or "company" not in segment or "topic" not in segment or "details" not in segment:
-        #         print(f"Warning: {segment_file} のセグメントデータが不正です。スキップします。")
-        #         continue
-
         for details in data["info"]:
             # `topic` と`details` の存在を確認
-            if not "topic" not in details or "details" not in details:
+            if not ("topic" in details and "details" in details):
                 print(f"Warning: {segment_file} のセグメントデータが不正です。スキップします。")
                 continue
 
             # トピック名を取り出し
-            topic_name = data["topic"]
+            topic_name = details["topic"]
             
             # `details` 内の各テキストをデータベースに追加
             for detail in details["details"]:
