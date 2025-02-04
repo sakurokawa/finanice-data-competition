@@ -1,0 +1,10 @@
+pdf2image
+pillow
+google-generativeai
+chromadb
+openai
+pandas
+python-dotenv
+retry
+tiktoken
+sentence_transformers

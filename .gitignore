@@ -1,0 +1,12 @@
+# Byte-compiled / optimazed / DLL Files
+__pycache__/
+
+# Python virtual environment
+.venv/
+
+# dev env files
+.env
+
+# Company Data
+data/
+
