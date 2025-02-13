@@ -15,7 +15,9 @@ from pathlib import Path
 def segment_image_with_gemini(pdf_folder: str):
     
     #pathの末尾を取得(ex.1_pdf)
-    pdf_folder_end = pdf_folder.removeprefix("data/images/")
+    # pdf_folder_end = pdf_folder.removeprefix("data/images/")
+    pdf_folder_end = pdf_folder.removeprefix("validation/images/")
+
 
     # 環境変数読み込み
     load_dotenv(verbose=True)
@@ -26,10 +28,18 @@ def segment_image_with_gemini(pdf_folder: str):
 
     prompt = """
         
-        # 画像に記載されている情報を、複数のトピック(topic)と詳細(detail)に分けてJSON形式で返却してください。
-        # また、画像で言及されている情報がどの会社の情報かを特定し、JSON内のcompanyに設定してください。
-        # 複数のトピック(topic)と詳細(detail)はinfoとしてまとめてください。
-        # 日本語で回答してください。
+        次の画像は、ある会社の統合報告書あるいはそれに類するレポートの一部です。\n
+        画像にある内容を次の指示に従って漏れがないようにJSOON形式で出力してください。\n
+        1.複数のトピック(topic)と詳細(detail)に分けて返却してください。
+        2.文章や表、画像や内容によってトピック(topic)に分割し、レイアウトを踏まえてトピック(topic)ごとに漏れなく内容を詳細(detail)に返却してください。
+        3. 複数のトピック(topic)と詳細(detail)はinfoとしてまとめてください。
+        4.また、画像で言及されている情報がどの会社の情報かを特定し、JSON内のcompanyに設定してください。
+        5.トピックが文章を含んでいる場合は、文章は漏れなく出力してください。\n
+        6.トピックが表を含んでいる場合には、文章は漏れなく出力してください。\n
+        7.トピックが図を含んでいる場合には、代わりに文章で図の内容を表現してください。\n
+        8.トピックが画像のみを含んでいる場合、画像についての説明や描写を行う必要はありません。\n
+        9.日本語で出力してください。\n
+        10.出力にあなたの言葉は含めず、画像の内容のみを出力してください。\n
 
         """
 
@@ -73,7 +83,8 @@ def segment_image_with_gemini(pdf_folder: str):
             continue # パースエラー時はスキップ
 
         # 保存先ディレクトリ
-        output_dir = f"data/vector_db/{pdf_folder_end}"
+        # output_dir = f"data/vector_db/{pdf_folder_end}"
+        output_dir = f"validation/vector_db/{pdf_folder_end}"
         os.makedirs(output_dir, exist_ok=True)  # ディレクトリがなければ作成
 
         # ファイル名を画像のベース名から生成

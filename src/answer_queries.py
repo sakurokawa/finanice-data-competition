@@ -26,12 +26,12 @@ def search_vector_db(db_path: str, query: str):
     if not results["documents"]:
         return []
 
-    # # 関連するドキュメントとメタデータを取得
-    # return [
-    #     {"document": doc, "metadata": meta}
-    #     for doc, meta in zip(results["documents"][0], results["metadatas"][0])
-    # ]
-    return [doc for doc in results["documents"][0]]   
+    # 関連するドキュメントとメタデータを取得
+    return [
+        {"document": doc, "metadata": meta}
+        for doc, meta in zip(results["documents"][0], results["metadatas"][0])
+    ]
+    # return [doc for doc in results["documents"][0]]   
 
 def answer_questions(query_file: str, db_path: str, output_file: str):
 
@@ -49,18 +49,36 @@ def answer_questions(query_file: str, db_path: str, output_file: str):
     answers = []
     for _, row in queries.iterrows():
         relevant_docs = search_vector_db(db_path, row["problem"])
-        context = " ".join(relevant_docs)
+
+        retrival_list = []
+        i = 1
+        for doc in relevant_docs:
+            company = doc["metadata"]["company"]
+            topic = doc["metadata"]["topic"]
+            detail = doc["document"]
+            context = f"{i}.会社【{company}】に関する情報...【トピック】{topic}:【詳細】{detail}\n"
+            retrival_list.append(context)
+            i = i + 1
+
+        all_context = "".join(retrival_list)
+
+        print(f"問題：{row["problem"]}")
+        print(f"関連箇所：{all_context}")
 
         role = "あなたは企業に関する質問に対して、情報を必要に応じてベクトルデータベースから検索し、回答するRAGです。"
         
         prompt = f"""
 
             次の質問に54トークン以内で簡潔に回答してください。: {row['problem']}\n
-            あなたがベクトルデーターベースから質問に関連して検索した情報を示します。こちらを参考に回答してください。Context: {context}\n
-            回答の際には、以下に注意して回答してください。
-            # 文章ではなく、単語レベルで完結に回答すること。
-            # 回答が複数ある場合には、句点(、)で区切って回答をすること。
-            # 数値を答えさせる問題の場合は、数値のみを回答すること。
+            あなたがベクトルデーターベースから質問に関連して検索した情報を示します。こちらを参考に回答してください。\n
+            【参考文献】\n
+            {all_context}
+            回答の際には、以下に注意して回答してください。\n
+            # 回答には必ず参考文献の情報のみを用い、あなたの言葉では回答しないこと。
+            # 質問がどの会社についての質問かをまず判定し、参考とすべき情報を判断すること。\n
+            # 文章ではなく、単語レベルで完結に回答すること。\n
+            # 回答が複数ある場合には、句点(、)で区切って回答をすること。\n
+            # 数値を答えさせる問題の場合は、数値のみを回答すること。\n
             """
 
         response = client.chat.completions.create(

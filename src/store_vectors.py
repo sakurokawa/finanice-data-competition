@@ -14,7 +14,7 @@ from sentence_transformers import SentenceTransformer
 #         yield tokenizer.decode(tokens[i:i + max_tokens])
 
 # **埋め込みモデルをロード**
-embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
+# embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 
 def store_segments_to_vector_db(db_path: str, segment_folder: str):
     client = chromadb.PersistentClient(path=db_path)
@@ -46,6 +46,8 @@ def store_segments_to_vector_db(db_path: str, segment_folder: str):
 
             # トピック名を取り出し
             topic_name = details["topic"]
+
+            details_list = []
             
             # `details` 内の各テキストをデータベースに追加
             for detail in details["details"]:
@@ -53,18 +55,23 @@ def store_segments_to_vector_db(db_path: str, segment_folder: str):
                     print(f"Warning: {segment_file} の 'details' 内に無効なデータがあります。スキップします。")
                     continue
 
-                # **テキストを埋め込みベクトルに変換**
-                embedding_vector = embedding_model.encode(detail).tolist()
+                details_list.append(detail)
+                
 
-                # 一意の ID を生成して追加
-                unique_id = str(uuid.uuid4())
+                # # **テキストを埋め込みベクトルに変換**
+                # embedding_vector = embedding_model.encode(detail).tolist()
 
-                collection.add(
-                    ids=[unique_id],  # 必須の ID を追加
-                    documents=[detail],
-                    embeddings=[embedding_vector],  # **埋め込みベクトルを追加**
-                    metadatas=[{"company": company_name, "topic": topic_name, "source": segment_file.stem}]
-                )
+            details_all = "/".join(details_list)
+
+            # 一意の ID を生成して追加
+            unique_id = str(uuid.uuid4())
+
+            collection.add(
+                ids=[unique_id],  # 必須の ID を追加
+                documents=[details_all],
+                # embeddings=[embedding_vector],  # **埋め込みベクトルを追加**
+                metadatas=[{"company": company_name, "topic": topic_name, "source": segment_file.stem}]
+            )
 
                 # # チャンクごとにデータベースに追加
                 # for chunk in chunk_text(detail):
